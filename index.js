@@ -147,23 +147,26 @@ async function run() {
       res.send(results);
     })
 
-    app.get('/postsearch', async (req, res) => {
-       const filter = req.query;
-       console.log(filter)
-       const query = {
-        tagName : {$regex: filter.search , $options: 'i'} 
-       }
-       const results = await postsCollection.find(query).toArray();
-      res.send(results);
-    })
+    // app.get('/postsearch', async (req, res) => {
+    //    const filter = req.query;
+    //    console.log(filter)
+    //    const query = {
+    //     tagName : filter.search, 
+    //    }
+    //    const results = await postsCollection.find(query).toArray();
+    //    console.log(results)
+    //   res.send(results);
+    // })
 
     app.get('/posts', async (req, res) => {
       const filter = req.query;
       const page = parseInt(req.query.page)
       const size = parseInt(req.query.size)
 
-  
-      const query = {};
+     console.log(filter)
+      const query = {
+        tagName : { $regex :filter.search || '',  $options: 'i'}
+      };
       const options = {
         sort: {
           votes: filter.sort === 'asc' ? -1 : 1
@@ -222,10 +225,12 @@ async function run() {
       res.send({ count });
     })
 
-    app.get('/commentsCount', async(req, res) => {
-      const result = await commentsCollection.estimatedDocumentCount()
-      res.send({result});
-    })
+    // app.get('/comments/count/:title', async(req, res) => {
+    //   const title = req.params.title;
+    //   const query = { title: title}
+    //   const result = await commentsCollection.find(query).toArray();
+    //   res.send({result});
+    // })
     
     app.get('/comments/:id', async (req, res) => {
       const id = req.params.id;
@@ -249,9 +254,20 @@ async function run() {
 
     app.post('/comments', async (req, res) =>{
       const item = req.body;
+
       const result = await commentsCollection.insertOne(item);
+      const updateDoc = {
+        $inc: {
+          comments: 1  // Increment the 'comments' field by 1
+        }
+      }
+      const query = {_id : new ObjectId(item.userId)}
+      const updateResult = await postsCollection.updateOne(query, updateDoc)
+      console.log(updateResult ,item)
       res.send(result);
     })
+
+  
     
     app.get('/feedback', async (req, res) =>{
       const result = await feedbackCollection.find().toArray();
@@ -311,7 +327,7 @@ app.post('/create-payment-intent', async (req, res) => {
  })
  
 
- app.get('/admin-stats',verifyToken,veryfyAdmin, async (req, res) =>{
+ app.get('/admin-stats', async (req, res) =>{
   const users = await usersCollection.estimatedDocumentCount();
   const allposts = await postsCollection.estimatedDocumentCount();
   const comments = await commentsCollection.estimatedDocumentCount();
@@ -325,10 +341,10 @@ app.post('/create-payment-intent', async (req, res) => {
 
 
 
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
