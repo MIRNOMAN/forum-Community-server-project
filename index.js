@@ -147,12 +147,22 @@ async function run() {
       res.send(results);
     })
 
+    app.get('/postsearch', async (req, res) => {
+       const filter = req.query;
+       console.log(filter)
+       const query = {
+        tagName : {$regex: filter.search , $options: 'i'} 
+       }
+       const results = await postsCollection.find(query).toArray();
+      res.send(results);
+    })
+
     app.get('/posts', async (req, res) => {
       const filter = req.query;
       const page = parseInt(req.query.page)
       const size = parseInt(req.query.size)
 
-
+  
       const query = {};
       const options = {
         sort: {
@@ -196,9 +206,10 @@ async function run() {
       const id = data.usersId;
       const latestComment = data.latestComment;
       const query = {_id: new ObjectId(id) }
+      console.log(id, latestComment)
       const updateDoc = {
-        $set: {
-          comments : latestComment,
+        $inc: {
+          comments: 1  // Increment the 'comments' field by 1
         }
       }
       const results = await postsCollection.updateOne(query, updateDoc);
@@ -242,6 +253,11 @@ async function run() {
       res.send(result);
     })
     
+    app.get('/feedback', async (req, res) =>{
+      const result = await feedbackCollection.find().toArray();
+      res.send(result);
+    })
+
     app.post('/feedback', async (req, res) =>{
       const item = req.body;
       const result = await feedbackCollection.insertOne(item);
